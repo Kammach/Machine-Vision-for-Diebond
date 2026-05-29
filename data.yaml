@@ -1,0 +1,8 @@
+path: "D:/March/MCphase3/chip/dataset"
+
+train: images/train
+val: images/val
+
+names:
+  0: NG
+  1: OK
