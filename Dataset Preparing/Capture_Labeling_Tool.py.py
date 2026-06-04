@@ -43,7 +43,7 @@ def txt(canvas, text, pos, color, scale=0.68, thickness=1):
         canvas,
         text,
         pos,
-        cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.FONT_HERSHEY_TRIPLEX,
         scale,
         color,
         thickness,
@@ -125,11 +125,11 @@ def draw_text_lines(img, lines, x=10, y=30, line_gap=24, scale=0.6, color=(255, 
             img,
             line,
             (x, y + i * line_gap),
-            cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.FONT_HERSHEY_TRIPLEX,
             scale,
             color,
             thickness,
-            cv2.LINE_AA
+            cv2.LINE_08
         )
 
 
@@ -145,7 +145,7 @@ def draw_box(img, box, color, thickness=2, y_offset=0):
         img,
         class_name,
         (x1, max(20, y1 - 10)),
-        cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.FONT_HERSHEY_TRIPLEX,
         0.7,
         color,
         max(1, thickness),
@@ -182,6 +182,7 @@ def print_help():
     print("m       = Switch class (NG <-> OK)")
     print("z       = Delete last box")
     print("c       = Clear all boxes")
+    print("D       = Toggle drag-draw mode (freeze only)")
     print("+ / =   = Increase box width and height")
     print("-       = Decrease box width and height")
     print("[       = Increase width only")
@@ -191,6 +192,7 @@ def print_help():
     print("r       = Reset box size to default")
     print("q / ESC = Quit")
     print("Mouse left click inside image area when frozen = Add one label box")
+    print("Mouse left click + drag when drag-draw mode is ON = Draw one label box")
     print("=" * 80 + "\n")
 
 
@@ -208,6 +210,13 @@ class State:
         self.last_saved = "-"
         self.status = "Ready"
 
+        # ===== NEW: drag-draw mode state =====
+        self.drag_mode = False
+        self.drawing_box = False
+        self.drag_start_x = 0
+        self.drag_start_y = 0
+        self.drag_temp_box = None
+
     def active_folder_name(self):
         return DATASET_ROOT
 
@@ -220,6 +229,13 @@ class State:
 
 
 st = State()
+
+
+def reset_drag_state():
+    st.drawing_box = False
+    st.drag_start_x = 0
+    st.drag_start_y = 0
+    st.drag_temp_box = None
 
 
 def draw_header(canvas, st):
@@ -257,9 +273,9 @@ def draw_header(canvas, st):
     txt(canvas, "F Freeze    S Save    M Class", (right_x, 66), (255, 255, 255), 0.80, 2)
     txt(canvas, "Z Undo      C Clear    Q Quit", (right_x, 94), (255, 255, 255), 0.80, 2)
 
-    cv2.rectangle(canvas, (0, HEADER_H - 32), (w, HEADER_H), (30, 30, 30), -1)
-    txt(canvas, f"STATUS: {st.status}", (24, HEADER_H - 9), (0, 255, 255), 0.82, 2)
-    txt(canvas, "+/= Grow    - Shrink   [ ] Width   ; ' Height", (mid2_x, HEADER_H - 9), (255, 255, 255), 0.82, 2)
+    cv2.rectangle(canvas, (0, HEADER_H - 52), (w, HEADER_H), (30, 30, 30), -1)
+    txt(canvas, f"STATUS: {st.status}", (24, HEADER_H - 9), (0, 255, 255), 1.2, 2)
+    txt(canvas, "+/= Grow    - Shrink   [ ] Width   ; ' Height", (1340, HEADER_H - 9), (255, 255, 255), 0.82, 2)
 
 
 def draw_footer(canvas, st, frame_h):
@@ -291,11 +307,58 @@ def mouse_callback(event, x, y, flags, param):
 
     image_y = y - HEADER_H
 
-    if event == cv2.EVENT_LBUTTONDOWN and st.freeze_mode and st.frozen_frame is not None:
+    # ต้องอยู่ใน freeze mode เท่านั้น
+    if not st.freeze_mode or st.frozen_frame is None:
+        return
+
+    frame_h, frame_w = st.frozen_frame.shape[:2]
+
+    # ================== NEW: drag-draw mode ==================
+    if st.drag_mode:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            if not (0 <= x < PREVIEW_WIDTH and 0 <= image_y < PREVIEW_HEIGHT):
+                return
+
+            st.drawing_box = True
+            st.drag_start_x = x
+            st.drag_start_y = image_y
+            st.drag_temp_box = (x, image_y, x, image_y)
+
+        elif event == cv2.EVENT_MOUSEMOVE and st.drawing_box:
+            st.drag_temp_box = (st.drag_start_x, st.drag_start_y, x, image_y)
+
+        elif event == cv2.EVENT_LBUTTONUP and st.drawing_box:
+            st.drawing_box = False
+
+            if st.drag_temp_box is not None:
+                x1 = max(0, min(st.drag_start_x, x))
+                y1 = max(0, min(st.drag_start_y, image_y))
+                x2 = min(frame_w, max(st.drag_start_x, x))
+                y2 = min(frame_h, max(st.drag_start_y, image_y))
+
+                if (x2 - x1) > 10 and (y2 - y1) > 10:
+                    st.current_boxes.append((x1, y1, x2, y2, st.selected_class))
+                    st.status = f"Added label by drag: {CLASS_NAMES[st.selected_class]} ({len(st.current_boxes)} total)"
+                    print(
+                        f"Added label by drag | Class: {CLASS_NAMES[st.selected_class]} "
+                        f"| Box: ({x1}, {y1}) -> ({x2}, {y2}) "
+                        f"| Size: {x2 - x1}x{y2 - y1} "
+                        f"| Total: {len(st.current_boxes)}"
+                    )
+
+            st.drag_temp_box = None
+
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            st.drawing_box = False
+            st.drag_temp_box = None
+
+        return
+    # =========================================================
+
+    # เดิม: คลิกครั้งเดียวเพื่อสร้าง box
+    if event == cv2.EVENT_LBUTTONDOWN:
         if not (0 <= x < PREVIEW_WIDTH and 0 <= image_y < PREVIEW_HEIGHT):
             return
-
-        frame_h, frame_w = st.frozen_frame.shape[:2]
 
         bx = min(st.box_width, frame_w)
         by = min(st.box_height, frame_h)
@@ -340,12 +403,22 @@ while True:
         mx = max(0, min(st.mouse_x, frame_w - 1))
         my = max(0, min(st.mouse_y - HEADER_H, frame_h - 1))
 
-        preview_w = min(st.box_width, frame_w)
-        preview_h = min(st.box_height, frame_h)
-        px1, py1, px2, py2 = clamp_box(mx, my, preview_w, preview_h, frame_w, frame_h)
+        # ================== NEW: show drag preview box ==================
+        if st.drag_mode and st.drawing_box and st.drag_temp_box is not None:
+            x1, y1, x2, y2 = st.drag_temp_box
+            x1 = max(0, min(x1, frame_w - 1))
+            y1 = max(0, min(y1, frame_h - 1))
+            x2 = max(0, min(x2, frame_w - 1))
+            y2 = max(0, min(y2, frame_h - 1))
+            cv2.rectangle(image_frame, (x1, y1), (x2, y2), current_color, 2)
+            cv2.circle(image_frame, (mx, my), 4, current_color, -1)
+        else:
+            preview_w = min(st.box_width, frame_w)
+            preview_h = min(st.box_height, frame_h)
+            px1, py1, px2, py2 = clamp_box(mx, my, preview_w, preview_h, frame_w, frame_h)
 
-        cv2.rectangle(image_frame, (px1, py1), (px2, py2), current_color, 2)
-        cv2.circle(image_frame, (mx, my), 4, current_color, -1)
+            cv2.rectangle(image_frame, (px1, py1), (px2, py2), current_color, 2)
+            cv2.circle(image_frame, (mx, my), 4, current_color, -1)
 
     canvas = np.zeros((WINDOW_H, PREVIEW_WIDTH, 3), dtype=np.uint8)
 
@@ -366,13 +439,16 @@ while True:
         st.freeze_mode = True
         st.frozen_frame = image_frame.copy()
         st.current_boxes = []
-        st.status = "Frozen - click inside image area to add labels"
+        reset_drag_state()
+        st.status = "Frozen - click to add labels or press D to draw"
         print("Frame frozen. Click on the image to add labels.")
 
-    elif key == ord('u') and st.freeze_mode:
+    elif key == ord('f') and st.freeze_mode:
         st.freeze_mode = False
         st.frozen_frame = None
         st.current_boxes = []
+        st.drag_mode = False
+        reset_drag_state()
         st.status = "Unfrozen - temporary labels cleared"
         print("Unfrozen. Temporary labels cleared.")
 
@@ -396,6 +472,8 @@ while True:
             st.freeze_mode = False
             st.frozen_frame = None
             st.current_boxes = []
+            st.drag_mode = False
+            reset_drag_state()
         except Exception as e:
             st.status = f"Save failed: {e}"
             print(f"[ERROR] {e}")
@@ -414,6 +492,20 @@ while True:
         st.current_boxes = []
         st.status = "Cleared all boxes"
         print("Cleared all boxes on current frozen frame.")
+
+    elif key == ord('d'):
+        if st.freeze_mode:
+            st.drag_mode = not st.drag_mode
+            reset_drag_state()
+            if st.drag_mode:
+                st.status = "Drag-draw mode ENABLED (freeze only)"
+                print("Drag-draw mode enabled. Hold left mouse button and drag to create a box.")
+            else:
+                st.status = "Drag-draw mode DISABLED"
+                print("Drag-draw mode disabled.")
+        else:
+            st.status = "Enter freeze mode first"
+            print("Drag-draw mode can only be enabled while frozen.")
 
     elif key in [ord('+'), ord('=')]:
         st.box_width += STEP_SIZE
