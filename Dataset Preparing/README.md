@@ -1,4 +1,4 @@
-# Dataset Preparing — Machine Vision for Diebond
+<img width="1044" height="894" alt="image" src="https://github.com/user-attachments/assets/b4e3c0e5-99c6-48b8-a029-0cec23b926c1" /># Dataset Preparing — Machine Vision for Diebond
 
 เครื่องมือเตรียม Dataset สำหรับ YOLO Object Detection ในงาน Machine Vision ตรวจสอบ Diebond  
 รองรับการเก็บภาพจากกล้อง (Raspberry Pi / Hailo), การ Label, การจัดการ Dataset และการแบ่ง Train/Val
@@ -37,8 +37,8 @@ Label ทุกไฟล์ใช้รูปแบบ **YOLO Normalized Format*
 
 | Class ID | ชื่อ | ความหมาย |
 |----------|------|-----------|
-| 0 | NG | No Good (ชิ้นงานเสีย) |
-| 1 | OK | Good (ชิ้นงานดี) |
+| 0 | NG | No Good (ไม่มีชิป) |
+| 1 | OK | Good (มีชิป) |
 
 > **หมายเหตุ:** `easy_to_collect_update.py` ใช้ 7 classes (OK, NG, GL, MA, DF, OG, class6) ซึ่งมากกว่าสคริปต์อื่น
 
@@ -61,6 +61,8 @@ Dataset Preparing/
 ## รายละเอียดแต่ละสคริปต์
 
 ### 1. `Capture_Labeling_Tool.py` — Raspberry Pi
+<img width="1044" height="894" alt="image" src="https://github.com/user-attachments/assets/72554c83-3017-4fb3-b760-a436900ac18e" />
+
 
 **วัตถุประสงค์:** เก็บภาพจากกล้อง Raspberry Pi (ผ่าน `picamera2`) พร้อม Label ในขั้นตอนเดียว
 
