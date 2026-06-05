@@ -1,4 +1,4 @@
-<img width="1044" height="894" alt="image" src="https://github.com/user-attachments/assets/b4e3c0e5-99c6-48b8-a029-0cec23b926c1" /># Dataset Preparing — Machine Vision for Diebond
+# Dataset Preparing — Machine Vision for Diebond
 
 เครื่องมือเตรียม Dataset สำหรับ YOLO Object Detection ในงาน Machine Vision ตรวจสอบ Diebond  
 รองรับการเก็บภาพจากกล้อง (Raspberry Pi / Hailo), การ Label, การจัดการ Dataset และการแบ่ง Train/Val
@@ -128,6 +128,9 @@ python Image_Labeling_Tool.py
 > IMG_DIR = r"D:\March\MCphase3\chip\dataset_raw\images"  # แก้ให้ตรงกับ path ของคุณ
 > LBL_DIR = r"D:\March\MCphase3\chip\dataset_raw\labels"
 > ```
+<img width="673" height="50" alt="image" src="https://github.com/user-attachments/assets/dd27b091-a105-4469-b459-e4d353422c7a" />
+<img width="1137" height="664" alt="image" src="https://github.com/user-attachments/assets/ce71a75e-fca9-49a3-9702-3636d3f6c73f" />
+
 
 **ฟีเจอร์หลัก:**
 - บันทึก Progress ไว้ใน `progress.txt` → รันต่อจากเดิมได้เมื่อเปิดใหม่
@@ -156,6 +159,8 @@ python Image_Labeling_Tool.py
 ---
 
 ### 3. `easy_to_collect_update.py` — Hailo AI Accelerator
+<img width="767" height="665" alt="image" src="https://github.com/user-attachments/assets/a01edf28-cc7b-4020-8f9d-b6feced134d1" />
+
 
 **วัตถุประสงค์:** เก็บภาพสำหรับ Dataset โดยใช้ผลการ Detect จาก Model ที่รันอยู่บน **Hailo AI Accelerator** มาเป็น Label อัตโนมัติ ช่วยให้เก็บ Dataset ได้เร็วขึ้น
 
@@ -222,6 +227,7 @@ dataset/
 ---
 
 ### 4. `dataset_tools.py` — เครื่องมือจัดการ Dataset
+<img width="516" height="273" alt="image" src="https://github.com/user-attachments/assets/7f488415-7c2a-4d9b-a4ce-446891d0cfaa" />
 
 **วัตถุประสงค์:** เครื่องมือ CLI แบบ Interactive สำหรับงาน Dataset Management ครบวงจร
 
@@ -280,6 +286,8 @@ Copy ทั้งโฟลเดอร์ไปสำรองไว้ พร�
 ---
 
 ### 5. `split_dataset.py` — แบ่งข้อมูล Train/Val
+<img width="702" height="104" alt="image" src="https://github.com/user-attachments/assets/3c90b89a-2206-4eb0-8453-6287e944fc07" />
+
 
 **วัตถุประสงค์:** Script เบา ๆ สำหรับแบ่ง Dataset เป็น Train และ Val อย่างรวดเร็ว
 
